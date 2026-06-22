@@ -1,8 +1,8 @@
 name: 每日股票分析-美股
 
 on:
-  schedule:
-    - cron: '0 7 * * *' 
+  # schedule:
+  #   - cron: '0 7 * * *' 
 
   # 手动触发
   workflow_dispatch:

@@ -12,7 +12,7 @@ on:
         required: true
         default: 'full'
         type: choice
-        options:
+        options:1
           - full          # 完整分析（股票+大盘）
           - market-only   # 仅大盘复盘
           - stocks-only   # 仅股票分析
@@ -439,38 +439,43 @@ jobs:
       - name: 推送报告链接到微信
         env:
           CUSTOM_WEBHOOK_URLS: ${{ secrets.CUSTOM_WEBHOOK_URLS }}
-          AMPLIFY_DOMAIN: ${{ vars.AMPLIFY_DOMAIN || secrets.AMPLIFY_DOMAIN }}
+          AMPLIFY_DOMAIN: ${{ secrets.AMPLIFY_DOMAIN }}
         run: |
-          REPORT_FILE=$(ls -t reports-html/*-us.html 2>/dev/null | head -1 | xargs -r basename)
-          if [ -z "$REPORT_FILE" ]; then
-            echo "⚠️ 未找到本次生成的报告文件，跳过推送"
-            exit 0
-          fi
+          DATE=$(TZ='Pacific/Auckland' date '+%Y-%m-%d')
 
-          FULL_URL="https://${AMPLIFY_DOMAIN}/${REPORT_FILE}"
-          REPORT_DATE=$(echo "$REPORT_FILE" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
-
-          echo "📎 美股报告链接: $FULL_URL"
+          STOCK_FILE="reports-html/${DATE}-us-stock.html"
+          MARKET_FILE="reports-html/${DATE}-us-market.html"
 
           if [ -z "$CUSTOM_WEBHOOK_URLS" ]; then
             echo "⚠️ 未配置 CUSTOM_WEBHOOK_URLS，跳过推送"
             exit 0
           fi
 
-          PAYLOAD=$(python3 -c "
-          import json
-          print(json.dumps({
-              'report_url': '$FULL_URL',
-              'market': 'us',
-              'date': '$REPORT_DATE'
-          }, ensure_ascii=False))
-          ")
+          if [ -f "$STOCK_FILE" ]; then
+            STOCK_URL="https://${AMPLIFY_DOMAIN}/${DATE}-us-stock.html"
+            echo "📎 美股个股报告: $STOCK_URL"
+            PAYLOAD=$(python3 -c "import json; print(json.dumps({'report_url': '$STOCK_URL', 'market': 'us', 'date': '$DATE'}, ensure_ascii=False))")
+            curl -s -X POST "$CUSTOM_WEBHOOK_URLS" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD"
+            echo ""
+          else
+            echo "⚠️ 未找到个股报告文件，跳过"
+          fi
 
-          curl -X POST "$CUSTOM_WEBHOOK_URLS" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD"
+          if [ -f "$MARKET_FILE" ]; then
+            MARKET_URL="https://${AMPLIFY_DOMAIN}/${DATE}-us-market.html"
+            echo "📎 美股大盘报告: $MARKET_URL"
+            PAYLOAD=$(python3 -c "import json; print(json.dumps({'report_url': '$MARKET_URL', 'market': 'us-market', 'date': '$DATE'}, ensure_ascii=False))")
+            curl -s -X POST "$CUSTOM_WEBHOOK_URLS" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD"
+            echo ""
+          else
+            echo "⚠️ 未找到大盘报告文件，跳过"
+          fi
 
-          echo "✅ 已推送到 webhook"
+          echo "✅ 推送完成"
 
       - name: 显示运行结果
         if: always()

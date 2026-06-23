@@ -12,7 +12,7 @@ on:
         required: true
         default: 'full'
         type: choice
-        options:1
+        options:
           - full          # 完整分析（股票+大盘）
           - market-only   # 仅大盘复盘
           - stocks-only   # 仅股票分析

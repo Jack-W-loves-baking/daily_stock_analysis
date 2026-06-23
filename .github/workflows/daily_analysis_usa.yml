@@ -439,7 +439,7 @@ jobs:
       - name: 推送报告链接到微信
         env:
           CUSTOM_WEBHOOK_URLS: ${{ secrets.CUSTOM_WEBHOOK_URLS }}
-          AMPLIFY_DOMAIN: ${{ secrets.AMPLIFY_DOMAIN }}
+          AMPLIFY_DOMAIN: ${{ vars.AMPLIFY_DOMAIN }}
         run: |
           DATE=$(TZ='Pacific/Auckland' date '+%Y-%m-%d')
 
